@@ -29,18 +29,28 @@ class Local_DB(object):
             contents
         )
         query = 'INSERT INTO PDFS (url, title, contents) VALUES (?,?,?)'
-        c.execute(query, data)
-        c.db.commit()
+        self.db.execute(query, data)
+        self.db.commit()
 
     def check_if_exists(self, url) -> bool:
         query = 'SELECT * FROM PDFS WHERE url = ?'
         c = self.db.cursor()
         r = c.execute(query, (url, ))
         res = r.fetchall()
+        c.close()
         if len(res) > 0:
             return True
         else:
             return False
+
+    def get_data_for_csv(self):
+        query = 'SELECT * FROM PDFS'
+        c = self.db.cursor()
+        r = c.execute(query)
+        rows = r.fetchall()
+        c_names = [desc[0] for desc in  c.description]
+        c.close()
+        return c_names, rows
 
 ### Imports ###
 import PyPDF2
@@ -104,7 +114,7 @@ def extract_pdf(pdf_url, db):
             for page in range(int(start) -1, int(end)-1):
                 pdf_page = pdf_reader.pages[page]
                 pdf_page.extract_text(visitor_text=extract_page)
-                store_in_db(pdf_url,meta.title, db)
+            store_in_db(pdf_url,meta.title, db)
 
     except Exception as err:
         print("something failed in pdf extraction.")
@@ -123,12 +133,20 @@ def get_links(target_file):
                     links.append(match.group().strip())
         return links
 
+def write_csv(c_names, rows):
+    with open('etsi_data.csv', 'w', newline='') as csv_file:
+        csv_writer = csv.writer(csv_file)
+        csv_writer.writerow(c_names)
+        csb_writer.writerows(rows)
+
 def get_pdfs(links, db):
     for link in links:
         if db.check_if_exists(link) is False:
             extract_pdf(link, db)
         else:
             print("url exists already.")
+    c_names, rows = db.get_data_for_csv()
+
 
 def main():
     if len(sys.argv) < 2:
