@@ -92,7 +92,6 @@ def extract_page(text, cm, tm, font_dict, font_size):
 
 def store_in_db(url, title, db):
     global gathered_text
-    #print(gathered_text)
     db.insert_new(url, title, gathered_text)
     gathered_text = ""
 
@@ -134,18 +133,26 @@ def get_links(target_file):
         return links
 
 def write_csv(c_names, rows):
-    with open('etsi_data.csv', 'w', newline='') as csv_file:
-        csv_writer = csv.writer(csv_file)
-        csv_writer.writerow(c_names)
-        csb_writer.writerows(rows)
+    try:
+        print("Starting to create local csv file")
+        with open('etsi_data.csv', 'w', newline='') as csv_file:
+            csv_writer = csv.writer(csv_file)
+            csv_writer.writerow(c_names)
+            csv_writer.writerows(rows)
+        print("Done! file \'etsi_data.csv\' created.")
+    except Exception as err:
+        print("Something went wrong with csv creation. Error msg:")
+        print(err)
+
 
 def get_pdfs(links, db):
     for link in links:
         if db.check_if_exists(link) is False:
             extract_pdf(link, db)
         else:
-            print("url exists already.")
+            print("Url already found in local database. Skipping..")
     c_names, rows = db.get_data_for_csv()
+    write_csv(c_names, rows)
 
 
 def main():
